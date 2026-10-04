@@ -22,9 +22,9 @@ const authErr = (e) => (e instanceof authprovider.AuthError ? new core.HttpError
 const api = express.Router();
 
 // ------------------------------------------------------------------ auth
-api.get('/csrf', (req, res) => { if (!req.session.csrf) req.session.csrf = crypto.randomBytes(24).toString('base64url'); res.json({ csrf: req.session.csrf, demo: process.env.QCARE_DEMO !== '0' }); });
+api.get('/csrf', (req, res) => { if (!req.session.csrf) req.session.csrf = crypto.randomBytes(24).toString('base64url'); res.json({ csrf: req.session.csrf, demo: process.env.VISIQ_DEMO !== '0' }); });
 api.post('/login', wrap(async (req, res) => { const u = await auth.login(req, req.body.username, req.body.password); res.json({ user: auth.publicUser(u), csrf: req.session.csrf }); }));
-api.post('/logout', wrap(async (req, res) => { if (req.user) await core.audit(req.ctx, 'auth.logout', { entity: 'user', id: req.user.id, summary: `${req.user.full_name} signed out` }); req.session.destroy(() => { res.clearCookie('qcare.sid'); res.json({ ok: true }); }); }));
+api.post('/logout', wrap(async (req, res) => { if (req.user) await core.audit(req.ctx, 'auth.logout', { entity: 'user', id: req.user.id, summary: `${req.user.full_name} signed out` }); req.session.destroy(() => { res.clearCookie('visiq.sid'); res.json({ ok: true }); }); }));
 api.get('/me', wrap(async (req, res) => { const s = await core.getSettings(); res.json({ user: req.user ? auth.publicUser(req.user) : null, csrf: req.session?.csrf || null,
   brand: { hospital_name: s.hospital_name, tagline: s.hospital_tagline, logo: s.hospital_logo, session_timeout_minutes: Number(s.session_timeout_minutes), tz: core.TZ } }); }));
 api.post('/me/password', auth.requireAuth, wrap(async (req, res) => {
@@ -163,14 +163,14 @@ api.get('/reports/:type.csv', need('reports.view'), wrap(async (req, res) => {
   const r = await stats.report(req.params.type, req.query);
   const csv = '\ufeff' + [r.columns.map((c) => csvCell(c.label)).join(','), ...r.rows.map((row) => r.columns.map((c) => csvCell(row[c.key])).join(','))].join('\r\n');
   await core.audit(req.ctx, 'report.exported', { entity: 'report', id: r.type, summary: `${req.user.full_name} exported "${r.title}" (CSV) ${r.from} to ${r.to}` });
-  res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="qcare-${r.type}-${r.from}_${r.to}.csv"` }).send(csv);
+  res.set({ 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="visiq-${r.type}-${r.from}_${r.to}.csv"` }).send(csv);
 }));
 api.get('/reports/:type.pdf', need('reports.view'), wrap(async (req, res) => {
   const r = await stats.report(req.params.type, req.query); const s = await core.getSettings();
   await core.audit(req.ctx, 'report.exported', { entity: 'report', id: r.type, summary: `${req.user.full_name} exported "${r.title}" (PDF) ${r.from} to ${r.to}` });
-  res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="qcare-${r.type}-${r.from}_${r.to}.pdf"` });
+  res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `attachment; filename="visiq-${r.type}-${r.from}_${r.to}.pdf"` });
   const doc = new PDFDocument({ size: 'A4', margin: 40, layout: r.columns.length > 4 ? 'landscape' : 'portrait', bufferPages: true }); doc.pipe(res);
-  doc.font('Helvetica-Bold').fontSize(16).fillColor('#10302F').text(s.hospital_name); doc.font('Helvetica').fontSize(10).fillColor('#555').text('QCare - ' + s.hospital_tagline);
+  doc.font('Helvetica-Bold').fontSize(16).fillColor('#14243d').text(s.hospital_name); doc.font('Helvetica').fontSize(10).fillColor('#555').text('VisiQ - ' + s.hospital_tagline);
   doc.moveDown(0.8).font('Helvetica-Bold').fontSize(13).fillColor('#000').text(r.title); doc.font('Helvetica').fontSize(9).fillColor('#555').text(`${r.from === r.to ? r.from : r.from + ' to ' + r.to}  |  Printed ${new Date(core.nowMs() + core.TZ * 36e5).toISOString().slice(0, 16).replace('T', ' ')}`); doc.moveDown();
   const w = (doc.page.width - 80) / r.columns.length; const row = (cells, bold) => { if (doc.y > doc.page.height - 70) doc.addPage(); const yy = doc.y; doc.font(bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(9).fillColor('#000');
     cells.forEach((c, i) => doc.text(String(c ?? ''), 40 + i * w, yy, { width: w - 6, ellipsis: true, lineBreak: false })); doc.y = yy + 16; if (bold) doc.moveTo(40, doc.y - 3).lineTo(doc.page.width - 40, doc.y - 3).strokeColor('#ccc').stroke(); };
@@ -196,7 +196,7 @@ admin.get('/audit', need('audit.view'), wrap(async (req, res) => {
   res.json({ total: (await db.get(`SELECT COUNT(*) AS n FROM audit_logs WHERE ${w}`, bind)).n, page: p, per, items: await db.all(`SELECT * FROM audit_logs WHERE ${w} ORDER BY id DESC LIMIT @per OFFSET @off`, { ...bind, per, off }) });
 }));
 
-// users: the password lives in Supabase Auth; QCare stores the profile and role
+// users: the password lives in Supabase Auth; VisiQ stores the profile and role
 const USER_ROW = `SELECT u.id, u.username, u.email, u.full_name, u.active, u.last_login_at, u.department_id, u.counter_id, r.code AS role, r.name AS role_name FROM users u JOIN roles r ON r.id=u.role_id WHERE u.deleted_at IS NULL`;
 admin.get('/users', need('users.manage'), wrap(async (req, res) => res.json({ users: await db.all(USER_ROW + ' ORDER BY u.full_name'), roles: await db.all('SELECT id, code, name, description FROM roles ORDER BY id') })));
 admin.post('/users', need('users.manage'), wrap(async (req, res) => {

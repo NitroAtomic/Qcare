@@ -1,4 +1,4 @@
-require('dotenv').config({ quiet: true });
+require('./env');
 const path = require('path');
 const http = require('http');
 const express = require('express');
@@ -75,10 +75,10 @@ async function start(port = Number(process.env.PORT) || 3000) {
 }
 if (require.main === module) {
   start().then(({ port }) => {
-    console.log(`\n  QCare is running\n  Staff:     http://localhost:${port}\n  TV board:  http://localhost:${port}/display`);
+    console.log(`\n  VisiQ is running\n  Staff:     http://localhost:${port}\n  TV board:  http://localhost:${port}/display`);
     console.log(`  Database:  ${db.mode === 'postgres' ? 'Supabase / PostgreSQL' : 'built-in local Postgres (trial mode, set DATABASE_URL to use Supabase)'}`);
     console.log(`  Sign-in:   ${authprovider.get().name === 'supabase' ? 'Supabase Auth' : 'local passwords (trial mode, set the SUPABASE_* variables to use Supabase Auth)'}\n`);
-    if (process.env.QCARE_DEMO !== '0') console.log('  Demo mode is ON (sign-in hints shown). Set QCARE_DEMO=0 before real use.\n');
-  }).catch((e) => { console.error('\nQCare could not start:', e.message, '\n'); process.exit(1); });
+    if (process.env.VISIQ_DEMO !== '0') console.log('  Demo mode is ON (sign-in hints shown). Set VISIQ_DEMO=0 before real use.\n');
+  }).catch((e) => { console.error('\nVisiQ could not start:', e.message, '\n'); process.exit(1); });
 }
 module.exports = { createApp, start };

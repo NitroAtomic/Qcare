@@ -1,5 +1,5 @@
--- QCare database schema for Supabase. Safe to run more than once.
--- QCare also runs this automatically every time it starts, so pasting it is optional.
+-- VisiQ database schema for Supabase. Safe to run more than once.
+-- VisiQ also runs this automatically every time it starts, so pasting it is optional.
 
 
 CREATE TABLE IF NOT EXISTS roles(

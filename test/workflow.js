@@ -1,9 +1,9 @@
 // End-to-end test: runs the 24-step patient journey plus the error cases through the real HTTP API.
 // Usage: npm test
 const fs = require('fs'); const os = require('os'); const path = require('path');
-process.env.QCARE_DATA = 'memory'; // in-process PostgreSQL (PGlite): same SQL engine as Supabase
-delete process.env.DATABASE_URL; process.env.QCARE_AUTH = 'local'; process.env.QCARE_QUIET = '1';
-process.env.QCARE_DEMO = '1';
+process.env.VISIQ_DATA = 'memory'; // in-process PostgreSQL (PGlite): same SQL engine as Supabase
+delete process.env.DATABASE_URL; process.env.VISIQ_AUTH = 'local'; process.env.VISIQ_QUIET = '1';
+process.env.VISIQ_DEMO = '1';
 const { start } = require('../server/index');
 const assert = require('assert');
 const PW = 'Qcare#2026';
@@ -111,7 +111,7 @@ async function ok(label, fn) { try { await fn(); passed++; console.log('  ✓ ' 
   await ok('Audit log recorded the whole journey with user, action and IP', async () => { const a = (await adm.get(`/api/admin/audit?visit_id=${visitId}&per=50`)).data; assert(a.total >= 12, 'only ' + a.total); assert(a.items.every((i) => i.username && i.created_at && i.ip !== undefined)); });
   await ok('Settings: queue format change applies to new numbers', async () => { assert.equal((await adm.call('PUT', '/api/admin/settings', { queue_number_pad: 4 })).status, 200); const p = (await rc.get('/api/patients?q=Garcia&per=5')).data.items.find((x) => !x.open_visit); const v = await rc.post('/api/visits', { patient_id: p.id, department_id: im.id }); assert.match(v.data.entry.queue_number, /^D-\d{4}$/); await rc.post(`/api/visits/${v.data.visit_id}/cancel`, { reason: 'test' }); await adm.call('PUT', '/api/admin/settings', { queue_number_pad: 3 }); });
 
-  console.log('\nConcurrency (the reason QCare uses Postgres row locking)');
+  console.log('\nConcurrency (the reason VisiQ uses Postgres row locking)');
   await ok('Two doctors pressing CALL NEXT at the same instant get different patients', async () => {
     const d2 = client(); await d2.login('drreyes'); const rcs = [];
     for (const n of ['Aquino', 'Castillo', 'Flores']) { const p = (await rc.get(`/api/patients?q=${n}&per=5`)).data.items.find((x) => !x.open_visit && x.age >= 18); if (!p) continue; const v = await rc.post('/api/visits', { patient_id: p.id, department_id: im.id }); if (v.status === 201) rcs.push(v.data.visit_id); }

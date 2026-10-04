@@ -1,3 +1,4 @@
+require('./env');
 // Database adapter. One tiny API on top of either:
 //   - Supabase / any PostgreSQL (set DATABASE_URL)          <- production
 //   - PGlite, PostgreSQL running inside Node (no DATABASE_URL) <- local trial and automated tests
@@ -36,7 +37,7 @@ async function init() {
     mode = 'postgres';
   } else {
     const { PGlite } = require('@electric-sql/pglite');
-    const dir = process.env.QCARE_DATA === 'memory' ? undefined : (process.env.QCARE_DATA || path.join(__dirname, '..', 'data')) + '/pglite';
+    const dir = process.env.VISIQ_DATA === 'memory' ? undefined : (process.env.VISIQ_DATA || path.join(__dirname, '..', 'data')) + '/pglite';
     if (dir) fs.mkdirSync(path.dirname(dir), { recursive: true });
     const pg = dir ? new PGlite(dir, { parsers: PARSERS }) : new PGlite({ parsers: PARSERS }); await pg.waitReady;
     let chain = Promise.resolve(); const locked = (fn) => { const run = chain.then(fn, fn); chain = run.catch(() => {}); return run; }; // one connection: serialise work

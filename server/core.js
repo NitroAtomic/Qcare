@@ -1,4 +1,4 @@
-// QCare core: everything that changes queue state lives here, inside database transactions.
+// VisiQ core: everything that changes queue state lives here, inside database transactions.
 // Routes stay thin; this file is where the Patient -> Visit -> Service -> Queue logic is enforced.
 const crypto = require('crypto');
 const { EventEmitter } = require('events');
@@ -27,7 +27,7 @@ const clean = (s, max = 200) => (s == null ? null : String(s).trim().slice(0, ma
 
 // ---------------------------------------------------------------- settings (cached for a few seconds)
 const DEFAULTS = {
-  hospital_name: 'Sugbo Medical Center', hospital_tagline: 'Smart Patient Queue & Service Management', hospital_logo: '',
+  hospital_name: 'Sugbo Medical Center', hospital_tagline: 'Integrated Hospital Visit & Queue Management', hospital_logo: '',
   queue_start_number: '1', queue_number_pad: '3', queue_number_format: '{prefix}-{number}', queue_reset_schedule: 'daily',
   wait_calc: 'current_avg', display_show_names: '0',
   voice_enabled: '1', voice_volume: '0.9', voice_repeat: '2', voice_delay: '3', voice_language: 'en-PH',

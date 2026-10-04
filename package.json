@@ -1,7 +1,7 @@
 {
-  "name": "qcare",
+  "name": "visiq",
   "version": "1.0.0",
-  "description": "QCare - Smart Patient Queue & Service Management. Created by JPD.",
+  "description": "VisiQ - Integrated Hospital Visit & Queue Management. Created by JPD.",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",

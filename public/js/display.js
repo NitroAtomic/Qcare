@@ -4,14 +4,14 @@
   const { html, $ } = Q;
   const root = document.getElementById('board');
   let state = null, spoken = new Set(), flash = new Map(); let gateDone = !Q.voice.supported;
-  const pref = () => JSON.parse(localStorage.getItem('qcare.tv') || '{}');
-  const savePref = (p) => localStorage.setItem('qcare.tv', JSON.stringify({ ...pref(), ...p }));
+  const pref = () => JSON.parse(localStorage.getItem('visiq.tv') || '{}');
+  const savePref = (p) => localStorage.setItem('visiq.tv', JSON.stringify({ ...pref(), ...p }));
 
   const panel = (d, i) => {
     const s = d.serving; const top = s[0]; const rest = s.slice(1, 4); const hot = flash.has(d.id) && flash.get(d.id) > Date.now();
     return html`<section class="tv-panel ${top ? 'live' : 'idle'} ${hot ? 'flash' : ''}" data-d="${d.id}" aria-label="${d.name}">
       <h2>${d.name}</h2><div class="lbl">NOW SERVING</div><div class="no" aria-live="polite">${top ? top.number : '—'}</div>
-      ${top ? html`<div class="go"><small>PLEASE PROCEED TO</small>${top.counter || d.name}${top.name ? html` <span style="font-weight:500;opacity:.8">· ${top.name}</span>` : ''}</div>` : html`<div class="go" style="color:#6F9A93;font-weight:600">No one is being called</div>`}
+      ${top ? html`<div class="go"><small>PLEASE PROCEED TO</small>${top.counter || d.name}${top.name ? html` <span style="font-weight:500;opacity:.8">· ${top.name}</span>` : ''}</div>` : html`<div class="go" style="color:#7192c4;font-weight:600">No one is being called</div>`}
       ${rest.length ? html`<div class="also">${rest.map((x) => html`<span><b>${x.number}</b> ${x.counter || ''}</span>`)}</div>` : ''}
       <div class="next"><span>NEXT</span>${d.waiting.length ? d.waiting.slice(0, 3).map((n) => html`<b>${n}</b>`) : html`<span>—</span>`}<span style="margin-left:auto">${d.waiting_count} waiting</span></div></section>`;
   };

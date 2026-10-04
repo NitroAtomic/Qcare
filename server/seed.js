@@ -1,6 +1,6 @@
-require('dotenv').config({ quiet: true });
+require('./env');
 // First-run data.
-//   QCARE_DEMO=0  production start: roles, permissions, departments, priority rules and ONE administrator. No patients.
+//   VISIQ_DEMO=0  production start: roles, permissions, departments, priority rules and ONE administrator. No patients.
 //   otherwise     demo: also staff accounts, ~150 patients, a week of history, and a hospital "morning in progress".
 // Live queues are produced by replaying real actions through core.js on a shifted clock, so the audit trail and waiting times are genuine.
 const crypto = require('crypto');
@@ -11,16 +11,27 @@ const provider = require('./authprovider');
 const { PERMISSIONS, ROLES } = require('./perms');
 
 const DEMO_PASSWORD = 'Qcare#2026';
-const log = (m) => { if (process.env.QCARE_QUIET !== '1') console.log('  ' + m); };
+// VISIQ_DEMO_SIZE=small builds about a third of the demo data. Much faster on a slow or faraway database.
+const SMALL = String(process.env.VISIQ_DEMO_SIZE || '').toLowerCase() === 'small';
+const log = (m) => { if (process.env.VISIQ_QUIET !== '1') console.log('  ' + m); };
 function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
 async function seedIfEmpty() {
   if ((await db.get('SELECT COUNT(*) AS n FROM users')).n > 0) return false;
-  await seed({ demo: process.env.QCARE_DEMO !== '0' }); return true;
+  await provider.get().check(); // wrong Supabase keys are caught here, before anything is written
+  await clearLeftovers(); // a first run that stopped half way must not block the next one
+  await seed({ demo: process.env.VISIQ_DEMO !== '0' }); return true;
+}
+// With no users, nobody has been able to sign in, so nothing real can exist yet. Safe to start clean.
+async function clearLeftovers() {
+  if ((await db.get('SELECT COUNT(*) AS n FROM departments')).n === 0 && (await db.get('SELECT COUNT(*) AS n FROM roles')).n === 0) return;
+  log('Cleaning up an unfinished first run...');
+  await db.exec(`TRUNCATE role_permissions, permissions, roles, queue_sequences, counters, laboratory_results, laboratory_requests, prescriptions, payments, notifications, audit_logs,
+    queue_entries, appointments, patient_visits, patients, doctors, queue_counters, services, departments, priority_rules RESTART IDENTITY CASCADE;`);
 }
 
 async function seed({ demo }) {
-  log(demo ? 'Creating demo data (this takes a minute on a remote database)...' : 'Setting up QCare for the first time...');
+  log(demo ? (SMALL ? 'Creating a small demo (a few minutes on a remote database)...' : 'Creating demo data (10 to 25 minutes on a faraway database; set VISIQ_DEMO_SIZE=small for a quick one)...') : 'Setting up VisiQ for the first time...');
   const ids = await db.transaction(async () => {
     for (const [code, d] of Object.entries(PERMISSIONS)) await db.run('INSERT INTO permissions(code,description) VALUES(?,?) ON CONFLICT(code) DO NOTHING', [code, d]);
     for (const [code, r] of Object.entries(ROLES)) {
@@ -56,12 +67,12 @@ async function seed({ demo }) {
   if (!demo) {
     const username = (process.env.ADMIN_USERNAME || 'admin').toLowerCase(); let pw = process.env.ADMIN_PASSWORD; let generated = false;
     if (!pw) { pw = 'Qc' + crypto.randomBytes(6).toString('hex') + '9'; generated = true; }
-    await makeUser(username, process.env.ADMIN_NAME || 'QCare Administrator', 'super_admin', null, null, pw);
+    await makeUser(username, process.env.ADMIN_NAME || 'VisiQ Administrator', 'super_admin', null, null, pw);
     log(`Administrator created. Username: ${username}${generated ? '   Password: ' + pw + '   (shown once. Change it after signing in.)' : ''}`);
     return;
   }
   const doc = async (username, name, spec, deptCode, counter) => { const uid = await makeUser(username, name, 'doctor', deptCode, counter, DEMO_PASSWORD); await db.run('INSERT INTO doctors(user_id,full_name,specialty,department_id,counter_id) VALUES(?,?,?,?,?)', [uid, name, spec, ids.dep[deptCode], counter]); };
-  await makeUser('admin', 'QCare Administrator', 'super_admin', null, null, DEMO_PASSWORD); await makeUser('reception', 'Liza Mendoza', 'receptionist', null, null, DEMO_PASSWORD);
+  await makeUser('admin', 'VisiQ Administrator', 'super_admin', null, null, DEMO_PASSWORD); await makeUser('reception', 'Liza Mendoza', 'receptionist', null, null, DEMO_PASSWORD);
   await doc('drsantos', 'Dr. Santos', 'Internal Medicine', 'internal-medicine', ids.ctr.r3); await doc('drreyes', 'Dr. Reyes', 'Internal Medicine', 'internal-medicine', ids.ctr.r4); await doc('drgarcia', 'Dr. Garcia', 'Pediatrics', 'pediatrics', ids.ctr.r1);
   await makeUser('lab', 'Marco Villanueva', 'laboratory', 'laboratory', ids.ctr.lab1, DEMO_PASSWORD); await makeUser('cashier', 'Grace Tan', 'cashier', 'cashier', ids.ctr.c1, DEMO_PASSWORD);
   await makeUser('pharmacy', 'Rico Bautista', 'pharmacist', 'pharmacy', ids.ctr.ph1, DEMO_PASSWORD); await makeUser('display', 'Lobby Display', 'display_operator', null, null, DEMO_PASSWORD);
@@ -152,12 +163,12 @@ async function history({ dep, svc, ctr }, { R, pick, between, todayStr }) {
     await db.run('UPDATE patient_visits SET completed_at=? WHERE id=?', [new Date(lastEnd).toISOString(), vid]);
   }
   await db.transaction(async () => {
-    for (let d = 7; d >= 1; d--) {
-      const date = addDays(todayStr, -d); const dow = new Date(date + 'T00:00:00Z').getUTCDay(); const n = dow === 0 ? 5 : dow === 6 ? 12 : Math.floor(between(18, 28));
+    for (let d = SMALL ? 2 : 7; d >= 1; d--) {
+      const date = addDays(todayStr, -d); const dow = new Date(date + 'T00:00:00Z').getUTCDay(); const n = SMALL ? 8 : dow === 0 ? 5 : dow === 6 ? 12 : Math.floor(between(18, 28));
       const mins = Array.from({ length: n }, () => pickHour() * 60 + Math.floor(R() * 60)).sort((a, b) => a - b); for (const mm of mins) await oneVisit(date, mm);
     }
     const cutoff = nowLocalMin() - 130; const first = 6 * 60 + 40; // today, before the live morning replayed by simulateToday()
-    if (cutoff > first + 20) { const n = Math.min(24, Math.floor((cutoff - first) / 9)); for (let i = 0; i < n; i++) await oneVisit(todayStr, Math.floor(first + (i * (cutoff - first)) / n)); }
+    if (cutoff > first + 20) { const n = Math.min(SMALL ? 6 : 24, Math.floor((cutoff - first) / 9)); for (let i = 0; i < n; i++) await oneVisit(todayStr, Math.floor(first + (i * (cutoff - first)) / n)); }
     for (const [k, v] of Object.entries(seq)) { const [d, date] = k.split('|'); await db.run('INSERT INTO queue_sequences(department_id,period,last_number) VALUES(?,?,?) ON CONFLICT(department_id,period) DO UPDATE SET last_number=excluded.last_number', [Number(d), date, v]); }
     const adultCut = new Date(Date.now() - 18 * 365.25 * 864e5).toISOString().slice(0, 10);
     const free = await db.all(`SELECT id FROM patients WHERE id NOT IN (SELECT patient_id FROM patient_visits WHERE visit_date=?) AND birth_date < ? AND patient_type='Regular' ORDER BY id LIMIT 3 OFFSET 20`, [todayStr, adultCut]);
@@ -188,6 +199,7 @@ async function simulateToday({ dep }, { R, pick }) {
     { p: () => maria, stage: 'consult_serving', path: 'lab', doc: 'drsantos' }, { p: () => pedro, stage: 'consult_called', path: 'none', doc: 'drreyes' },
     { p: () => ana, stage: 'consult_wait', path: 'lab' }, { p: a, stage: 'consult_wait', path: 'none' }, { p: s, stage: 'consult_wait', path: 'none' }, { p: a, stage: 'consult_wait', path: 'xray' },
   ];
+  if (SMALL) { const keep = new Set([0, 3, 7, 8, 10, 11, 13, 14, 15, 16, 18, 19, 21, 22, 23, 24]); plan.splice(0, plan.length, ...plan.filter((_, i) => keep.has(i))); }
   const tail = { consult_wait: 6, consult_called: 1, consult_serving: 5, lab_wait: 5, lab_serving: 4, xray_wait: 5, xray_serving: 4, cashier_wait: 4, cashier_serving: 2, pharmacy_wait: 4, pharmacy_serving: 2, done: 0 };
   const labPick = [['Complete Blood Count (CBC)', 'Urinalysis'], ['Fasting Blood Sugar', 'Lipid Profile'], ['Complete Blood Count (CBC)'], ['Creatinine', 'Urinalysis']];
   const rxList = ['Losartan 50 mg once daily; Amlodipine 5 mg once daily', 'Amoxicillin 500 mg, 1 capsule 3 times a day for 7 days; Paracetamol 500 mg as needed', 'Metformin 500 mg twice daily with meals', 'Omeprazole 20 mg before breakfast for 14 days'];
@@ -239,7 +251,7 @@ if (require.main === module) {
     await db.init();
     if (process.argv.includes('--reset')) {
       if (db.mode === 'postgres') { console.log('Refusing to wipe a real database. Delete the tables in the Supabase dashboard if you really want to start over.'); process.exit(1); }
-      await db.close(); require('fs').rmSync((process.env.QCARE_DATA || require('path').join(__dirname, '..', 'data')) + '/pglite', { recursive: true, force: true }); console.log('Local trial database deleted.'); process.exit(0);
+      await db.close(); require('fs').rmSync((process.env.VISIQ_DATA || require('path').join(__dirname, '..', 'data')) + '/pglite', { recursive: true, force: true }); console.log('Local trial database deleted.'); process.exit(0);
     }
     console.log(await seedIfEmpty() ? 'Demo data created.' : 'The database already has data, so nothing was changed.'); process.exit(0);
   })().catch((e) => { console.error(e); process.exit(1); });

@@ -1,4 +1,4 @@
-/* QCare front-end core: safe templates, API client, dialogs, toasts, live updates. No frameworks, no build step. */
+/* VisiQ front-end core: safe templates, API client, dialogs, toasts, live updates. No frameworks, no build step. */
 (function () {
   'use strict';
   const Q = (window.Q = { state: { user: null, csrf: null, brand: {}, meta: null }, pages: {}, cleanups: [] });
@@ -51,7 +51,7 @@
     refresh: 'M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5', edit: 'M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z', download: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3',
   };
   Q.icon = (n, cls = '') => Q.raw(`<svg class="icon ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${P[n] || ''}"/></svg>`);
-  Q.logoMark = () => Q.raw('<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#1B7F7A"/><circle cx="31" cy="30" r="14" fill="none" stroke="#fff" stroke-width="6"/><path d="M40 40l9 9" stroke="#FFB300" stroke-width="7" stroke-linecap="round"/><path d="M31 24v12M25 30h12" stroke="#FFB300" stroke-width="3.5" stroke-linecap="round"/></svg>');
+  Q.logoMark = () => Q.raw('<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#00803B"/><circle cx="31" cy="30" r="14" fill="none" stroke="#fff" stroke-width="6"/><path d="M40 40l9 9" stroke="#FFB300" stroke-width="7" stroke-linecap="round"/><path d="M31 24v12M25 30h12" stroke="#FFB300" stroke-width="3.5" stroke-linecap="round"/></svg>');
 
   // ---- API client
   async function request(method, url, body, opts = {}) {

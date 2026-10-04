@@ -20,7 +20,7 @@
     const info = (q) => q.status === 'waiting' ? `${q.ahead} ahead · ${wait(q)}` : q.status === 'called' ? `Go to ${q.counter || 'the counter'}` : q.status === 'serving' ? 'Being served' : q.status === 'completed' ? 'Done' : Q.statusLabel[q.status];
     const extra = (q) => q.lab ? q.lab.map((l) => `${l.test}: ${Q.statusLabel[l.status]}`).join(' · ') : q.rx_status ? `Medicines: ${Q.statusLabel[q.rx_status]}` : q.pay ? `${Q.peso(q.pay.due)} · ${Q.statusLabel[q.pay.status]}` : '';
     Q.mount(root, html`<div class="off ${online ? '' : 'on'}" role="status">No connection. Showing the last update. Trying again…</div>
-      <div class="wrap"><div class="t-top">${Q.logoMark()}<b>QCare</b><span>${d.hospital}<br>${d.visit_no}</span></div>${hero(d)}
+      <div class="wrap"><div class="t-top">${Q.logoMark()}<b>VisiQ</b><span>${d.hospital}<br>${d.visit_no}</span></div>${hero(d)}
         <button class="btn btn-primary btn-journey" id="jb" aria-expanded="${showJourney}">${showJourney ? 'HIDE PATIENT JOURNEY' : 'VIEW PATIENT JOURNEY'}</button>
         ${showJourney ? html`<div class="card"><h2>Your visit today</h2>${Q.journeyView(d.journey)}</div>` : ''}
         ${others.length > 1 || (others.length === 1 && d.queues.length) ? html`<div class="card"><h2>Your queue numbers</h2><ul class="qlist">${others.map((q) => html`<li><span class="n">${q.number}</span><div><div class="d">${q.department}</div><div class="s">${info(q)}${extra(q) ? ' · ' + extra(q) : ''}</div></div>${Q.chip(q.status)}</li>`)}</ul></div>` : ''}

@@ -1,9 +1,9 @@
-# QCare
+# VisiQ
 
-**Smart Patient Queue & Service Management** for Philippine hospitals and clinics.
+**Integrated Hospital Visit & Queue Management** for Philippine hospitals and clinics.
 Created by JPD.
 
-QCare follows one patient through a whole hospital visit. Registration, doctor, laboratory, X-ray, cashier and pharmacy all stay connected to the same **Visit ID**, so the patient never starts over at each window.
+VisiQ follows one patient through a whole hospital visit. Registration, doctor, laboratory, X-ray, cashier and pharmacy all stay connected to the same **Visit ID**, so the patient never starts over at each window.
 
 ```
 Patient (one record, forever)
@@ -18,11 +18,11 @@ Patient (one record, forever)
 |---|---|---|
 | Server | Node.js + Express | one small server, no build step |
 | Database | **Supabase Postgres** | all hospital data |
-| Staff sign-in | **Supabase Auth** | passwords are kept by Supabase, never by QCare |
+| Staff sign-in | **Supabase Auth** | passwords are kept by Supabase, never by VisiQ |
 | Live updates | WebSockets | the socket only says "something changed". Patient data is never sent over it |
 | Screens | plain HTML, CSS, JavaScript | staff app, TV board, patient phone page |
 
-QCare keeps **who can do what** (roles and permissions) in its own `users` table. Supabase only checks the password.
+VisiQ keeps **who can do what** (roles and permissions) in its own `users` table. Supabase only checks the password.
 
 ## Try it in 2 minutes (no Supabase yet)
 
@@ -31,7 +31,7 @@ npm install
 npm start
 ```
 
-Open http://localhost:3000. With nothing configured, QCare runs on a small built-in Postgres and local passwords so you can look around. Demo accounts all use the password `Qcare#2026`:
+Open http://localhost:3000. With nothing configured, VisiQ runs on a small built-in Postgres and local passwords so you can look around. Demo accounts all use the password `Qcare#2026`:
 
 `admin`, `reception`, `drsantos`, `lab`, `cashier`, `pharmacy`, `display`
 
@@ -50,13 +50,13 @@ The TV board is at http://localhost:3000/display. Open it on a second screen and
    npm start
    ```
 
-The first start builds every table, switches on row-level security, and creates the starter data. The screen prints which database and sign-in it is using. Check that it says **Supabase / PostgreSQL** and **Supabase Auth**.
+The first start builds every table (with `VISIQ_DEMO_SIZE=small` the demo is quick, about 6 minutes on a slow connection; the full demo can take 10 to 25 minutes), switches on row-level security, and creates the starter data. The screen prints which database and sign-in it is using. Check that it says **Supabase / PostgreSQL** and **Supabase Auth**.
 
 If you would rather build the tables yourself, paste `supabase/schema.sql` into **SQL Editor** and press Run.
 
 ### Why row-level security matters here
 
-Supabase gives every project a public web API. If a table is open to it, anyone with the public key could read it. QCare switches row-level security **on for every table with no open rules**, so that public API sees nothing. Only QCare's server, which connects with your database password, can reach patient data, and the server checks the user's role on every request.
+Supabase gives every project a public web API. If a table is open to it, anyone with the public key could read it. VisiQ switches row-level security **on for every table with no open rules**, so that public API sees nothing. Only VisiQ's server, which connects with your database password, can reach patient data, and the server checks the user's role on every request.
 
 **Keep `SUPABASE_SERVICE_ROLE_KEY` and `DATABASE_URL` secret.**
 
@@ -65,7 +65,7 @@ Supabase gives every project a public web API. If a table is open to it, anyone 
 In `.env`:
 
 ```
-QCARE_DEMO=0
+VISIQ_DEMO=0
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=pick-a-long-password-1
 HOSPITAL_NAME=Your Hospital
@@ -79,9 +79,9 @@ Then `npm start`. You get your departments, priority rules, and one administrato
 2. **Departments**: your departments, services and prices, counters and rooms.
 3. **Users**: one account per staff member with the right role.
 
-Serve QCare over **HTTPS**. Any host that keeps a Node process running works (Render, Railway, Fly.io, a VPS, or a computer inside the hospital). It will not work on serverless-only hosts, because live updates need a long-running connection.
+Serve VisiQ over **HTTPS**. Any host that keeps a Node process running works (Render, Railway, Fly.io, a VPS, or a computer inside the hospital). It will not work on serverless-only hosts, because live updates need a long-running connection.
 
-Staff are stored in Supabase as `username@qcare.example.com`. You can change that domain with `QCARE_EMAIL_DOMAIN`. Changing it later does not rename existing accounts.
+Staff are stored in Supabase as `username@visiq.example.com`. You can change that domain with `VISIQ_EMAIL_DOMAIN`. Changing it later does not rename existing accounts.
 
 ## Roles
 
@@ -112,7 +112,7 @@ The administrator can tick or untick what each role is allowed to do under **Use
 
 | Command | What it does |
 |---|---|
-| `npm start` | run QCare |
+| `npm start` | run VisiQ |
 | `npm run dev` | run and restart when files change |
 | `npm test` | run the 25 automated checks (see below) |
 | `npm run schema` | rewrite `supabase/schema.sql` |

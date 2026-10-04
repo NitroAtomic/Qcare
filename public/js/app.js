@@ -1,4 +1,4 @@
-/* QCare staff app: sign-in, shell, router, global search, notifications, idle sign-out. */
+/* VisiQ staff app: sign-in, shell, router, global search, notifications, idle sign-out. */
 (function () {
   'use strict';
   const { html, $, $$ } = Q;
@@ -17,7 +17,7 @@
 
   // ------------------------------------------------------------------ boot
   async function boot() {
-    try { const me = await Q.get('/api/me', { quiet: true }); Q.state.csrf = me.csrf; Q.state.brand = me.brand; Q.state.user = me.user; document.title = me.brand.hospital_name ? `QCare - ${me.brand.hospital_name}` : 'QCare'; if (me.user) return start(); } catch (e) { return fatal(e); }
+    try { const me = await Q.get('/api/me', { quiet: true }); Q.state.csrf = me.csrf; Q.state.brand = me.brand; Q.state.user = me.user; document.title = me.brand.hospital_name ? `VisiQ - ${me.brand.hospital_name}` : 'VisiQ'; if (me.user) return start(); } catch (e) { return fatal(e); }
     showLogin();
   }
   function fatal(e) { Q.mount(root, html`<div style="padding:40px;max-width:560px;margin:auto">${Q.errorBox(e.message)}</div>`); $('[data-retry]', root)?.addEventListener('click', boot); }
@@ -27,13 +27,13 @@
     let demo = false; try { const t = await Q.get('/api/csrf', { quiet: true }); Q.state.csrf = t.csrf; demo = t.demo; } catch { /* offline */ }
     document.body.className = '';
     Q.mount(root, html`<div class="login">
-      <div class="login-art" aria-hidden="true"><div class="brand">${Q.logoMark()}<div><b>QCare</b><span>Smart Patient Queue & Service Management</span></div></div>
+      <div class="login-art" aria-hidden="true"><div class="brand">${Q.logoMark()}<div><b>VisiQ</b><span>Integrated Hospital Visit & Queue Management</span></div></div>
         <div class="stack-t"><div class="ticket live"><span class="t-label">Doctor Consultation</span><span class="t-num">D-025</span><span class="t-sub">Please proceed to Consultation Room 3</span></div>
           <div class="ticket"><span class="t-label">Laboratory</span><span class="t-num">LAB-014</span><span class="t-sub">3 patients ahead</span></div>
           <div class="ticket"><span class="t-label">Cashier</span><span class="t-num">C-031</span><span class="t-sub">Next after laboratory</span></div></div>
-        <p style="color:#8FB1AB;max-width:380px">One patient. One visit. Every department connected from registration to pharmacy.</p></div>
+        <p style="color:#8fa9d3;max-width:380px">One patient. One visit. Every department connected from registration to pharmacy.</p></div>
       <form class="login-form" id="lf" novalidate>
-        <div><h1>Sign in</h1><p class="muted">${Q.state.brand.hospital_name || 'QCare'}</p></div>
+        <div><h1>Sign in</h1><p class="muted">${Q.state.brand.hospital_name || 'VisiQ'}</p></div>
         ${notice ? html`<div class="banner">${notice}</div>` : ''}
         <div class="field"><label for="u">Username</label><input id="u" name="username" type="text" autocomplete="username" autocapitalize="none" required><span class="err" data-for="username"></span></div>
         <div class="field"><label for="p">Password</label><input id="p" name="password" type="password" autocomplete="current-password" required><span class="err" data-for="password"></span></div>
@@ -57,7 +57,7 @@
     document.body.className = 'app'; started = true;
     const u = Q.state.user; const nav = allowed();
     Q.mount(root, html`<div class="shell">
-      <aside class="side" id="side" aria-label="Main menu"><a class="brand" href="#/${HOME[u.role] || 'dashboard'}">${logoImg()}<div><b>QCare</b><span>Smart Patient Queue &amp; Service Management</span></div></a>
+      <aside class="side" id="side" aria-label="Main menu"><a class="brand" href="#/${HOME[u.role] || 'dashboard'}">${logoImg()}<div><b>VisiQ</b><span>Integrated Hospital Visit &amp; Queue Management</span></div></a>
         <nav class="nav" id="nav">${nav.map((n) => html`<a href="#/${n.id}" data-nav="${n.id}">${Q.icon(n.id)}<span>${n.label}</span></a>`)}</nav>
         <div class="side-foot">${u.role_name}<br>Created by JPD</div></aside>
       <div class="main"><div class="net" id="net" role="status">Connection lost. Showing the last information we had. Trying to reconnect…</div>
@@ -68,7 +68,7 @@
           <div class="pop"><button class="icon-btn" id="bell" aria-label="Notifications">${Q.icon('bell')}<span class="dot hide" id="bdot">0</span></button><div class="menu hide" id="bellmenu" style="min-width:320px"></div></div>
           <div class="pop"><button class="icon-btn" id="um" aria-label="Profile menu" aria-haspopup="true"><span class="avatar">${Q.initials(u.full_name)}</span></button>
             <div class="menu hide" id="umenu"><div class="who"><strong>${u.full_name}</strong><div class="muted small">${u.role_name}</div></div><button data-act="pw">${Q.icon('settings')}Change password</button><button data-act="out">${Q.icon('logout')}Sign out</button></div></div></header>
-        <main class="view" id="view" tabindex="-1"></main><footer class="view-foot brand-foot">QCare · Smart Patient Queue &amp; Service Management · Created by JPD</footer></div></div>`);
+        <main class="view" id="view" tabindex="-1"></main><footer class="view-foot brand-foot">VisiQ · Integrated Hospital Visit &amp; Queue Management · Created by JPD</footer></div></div>`);
     wireShell(); Q.connectLive(); loadMeta().then(route);
   }
   async function loadMeta() { try { Q.state.meta = await Q.get('/api/meta'); } catch { Q.state.meta = Q.state.meta || { departments: [], services: [], counters: [], doctors: [], priorities: [], payment_methods: [] }; } }
@@ -137,7 +137,7 @@
     const prev = $('#view'); const view = prev.cloneNode(false); prev.replaceWith(view); // fresh container so listeners from the last page never pile up
     $$('#nav a').forEach((a) => (a.dataset.nav === (name === 'station' ? 'queues' : name) ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current')));
     if (!page) { Q.mount(view, Q.empty('alert', 'Page not found', 'Use the menu to go somewhere else.')); return; }
-    document.title = `${page.title || name} - QCare`; Q.mount(view, Q.skeleton(5));
+    document.title = `${page.title || name} - VisiQ`; Q.mount(view, Q.skeleton(5));
     try { await page.render(view, args); } catch (e) { Q.mount(view, Q.errorBox(e.message)); $('[data-retry]', view)?.addEventListener('click', route); }
     view.scrollTop = 0; window.scrollTo(0, 0);
   }

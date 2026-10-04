@@ -18,11 +18,11 @@
     const ov = await Q.get('/api/queue/overview'); const kinds = KINDS[kindKey];
     let depts = ov.departments.filter((d) => (kinds ? kinds.includes(d.kind) && d.can_work : true));
     if (!depts.length) return Q.mount(el, Q.empty('queues', 'No queue for you here', 'Ask an administrator to assign you to a department.'));
-    let id = args && args[0] ? +args[0] : +localStorage.getItem('qcare.dept.' + kindKey) || depts[0].id; if (!depts.some((d) => d.id === id)) id = depts[0].id;
+    let id = args && args[0] ? +args[0] : +localStorage.getItem('visiq.dept.' + kindKey) || depts[0].id; if (!depts.some((d) => d.id === id)) id = depts[0].id;
     const tabs = depts.length > 1 && kinds;
     Q.mount(el, html`${tabs ? html`<div class="tabs" role="tablist">${depts.map((d) => html`<button role="tab" data-dept="${d.id}" aria-selected="${d.id === id}">${d.name}</button>`)}</div>` : ''}<div id="stn"></div>`);
-    el.addEventListener('click', (e) => { const t = e.target.closest('[data-dept]'); if (t && t.getAttribute('role') === 'tab') { localStorage.setItem('qcare.dept.' + kindKey, t.dataset.dept); Q.go(kindKey + '/' + t.dataset.dept); } });
-    if (args && args[0] && kinds) localStorage.setItem('qcare.dept.' + kindKey, id);
+    el.addEventListener('click', (e) => { const t = e.target.closest('[data-dept]'); if (t && t.getAttribute('role') === 'tab') { localStorage.setItem('visiq.dept.' + kindKey, t.dataset.dept); Q.go(kindKey + '/' + t.dataset.dept); } });
+    if (args && args[0] && kinds) localStorage.setItem('visiq.dept.' + kindKey, id);
     await station($('#stn', el), id);
   } });
   Q.pages.doctors = pageFor('doctors'); Q.pages.laboratory = pageFor('laboratory'); Q.pages.billing = pageFor('billing'); Q.pages.pharmacy = pageFor('pharmacy');
@@ -30,7 +30,7 @@
 
   // ---------- the console
   async function station(box, deptId) {
-    let st = null; let pendingRender = false; let key = ''; let lastCounter = localStorage.getItem('qcare.counter.' + deptId) || '';
+    let st = null; let pendingRender = false; let key = ''; let lastCounter = localStorage.getItem('visiq.counter.' + deptId) || '';
     const me = Q.state.user.id; const hasOwnCounter = !!(Q.state.user.counter_id || Q.state.user.doctor?.counter_id);
 
     async function load() {
@@ -124,7 +124,7 @@
     // ---------- actions
     const run = async (btn, fn, ok) => { if (btn) return Q.busy(btn, async () => { try { const r = await fn(); if (ok) Q.toast(typeof ok === 'function' ? ok(r) : ok); key = ''; await load(); return r; } catch (e) { Q.fail(e); key = ''; await load().catch(() => {}); } }); };
     const entry = (id) => [...st.serving, ...st.waiting, ...st.recent, ...st.skipped].find((e) => e.id === +id);
-    box.addEventListener('change', (e) => { if (e.target.id === 'ctr') { lastCounter = e.target.value; localStorage.setItem('qcare.counter.' + deptId, lastCounter); } });
+    box.addEventListener('change', (e) => { if (e.target.id === 'ctr') { lastCounter = e.target.value; localStorage.setItem('visiq.counter.' + deptId, lastCounter); } });
     box.addEventListener('submit', async (ev) => { const f = ev.target.closest('#payf'); if (!f) return; ev.preventDefault(); const d = Q.formData(f); const amt = Number(d.amount); const rem = entry(f.dataset.id)?.pay?.remaining || 0;
       if (!(amt > 0)) return Q.setErrors(f, { amount: 'Enter the amount received' }); if (amt > rem + 0.001) return Q.setErrors(f, { amount: `The balance is only ${Q.peso(rem)}` });
       await run($('button[type=submit]', f), () => Q.post(`/api/billing/${f.dataset.id}/pay`, { amount: amt, method: d.method, note: d.note, idempotency_key: f.dataset.key }), (r) => (r.duplicate ? 'That payment was already recorded' : r.summary.status === 'paid' ? 'Payment complete. Patient moved on.' : 'Partial payment recorded')); });

@@ -1,6 +1,6 @@
-// QCare schema for PostgreSQL / Supabase. Idempotent: safe to run on every start.
+// VisiQ schema for PostgreSQL / Supabase. Idempotent: safe to run on every start.
 // Row-level security is switched ON for every table with NO policies, so Supabase's public API (anon / authenticated keys)
-// can never read or write hospital data. QCare's server connects with the database owner role and enforces permissions itself.
+// can never read or write hospital data. VisiQ's server connects with the database owner role and enforces permissions itself.
 const TABLES = ['roles', 'permissions', 'role_permissions', 'departments', 'services', 'queue_counters', 'users', 'doctors', 'patients', 'patient_visits', 'priority_rules', 'queue_sequences', 'queue_entries',
   'appointments', 'laboratory_requests', 'laboratory_results', 'prescriptions', 'payments', 'notifications', 'audit_logs', 'settings', 'sessions', 'counters', 'local_credentials'];
 

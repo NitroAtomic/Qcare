@@ -1,5 +1,5 @@
 // Sessions (stored in Postgres), sign-in through Supabase Auth, CSRF, and permission checks.
-// Supabase Auth proves WHO someone is. QCare's own `users` table decides WHAT they may do (role + permissions).
+// Supabase Auth proves WHO someone is. VisiQ's own `users` table decides WHAT they may do (role + permissions).
 const session = require('express-session');
 const crypto = require('crypto');
 const db = require('./db');
@@ -24,7 +24,7 @@ async function sessionMiddleware() {
     const row = await db.get(`SELECT value FROM settings WHERE key='_session_secret'`);
     if (row) secret = row.value; else { secret = crypto.randomBytes(32).toString('hex'); await db.run(`INSERT INTO settings(key,value,updated_at) VALUES('_session_secret',?,?) ON CONFLICT(key) DO NOTHING`, [secret, core.now()]); secret = (await db.get(`SELECT value FROM settings WHERE key='_session_secret'`)).value; }
   }
-  return session({ name: 'qcare.sid', secret, resave: false, saveUninitialized: false, rolling: true, store: new PgStore(),
+  return session({ name: 'visiq.sid', secret, resave: false, saveUninitialized: false, rolling: true, store: new PgStore(),
     cookie: { httpOnly: true, sameSite: 'lax', secure: process.env.COOKIE_SECURE === '1', maxAge: 20 * 60 * 1000 } });
 }
 
